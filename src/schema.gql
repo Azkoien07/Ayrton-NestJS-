@@ -1,0 +1,52 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type User {
+  id: ID!
+  email: String!
+  role: String!
+  createdAt: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type ApiResponse {
+  code: Int!
+  message: String!
+  data: JSON
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+type UsersResponse {
+  code: Int!
+  message: String!
+  users: [User!]
+}
+
+type UserResponse {
+  code: Int!
+  message: String!
+  user: User
+}
+
+type Query {
+  users(page: Float!, limit: Float!): UsersResponse!
+  user(id: Float!): UserResponse!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): ApiResponse!
+}
+
+input CreateUserInput {
+  email: String!
+  password: String!
+}
