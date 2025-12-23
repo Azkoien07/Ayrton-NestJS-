@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -16,14 +17,18 @@ import { RolesModule } from './roles/roles.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
+        type: 'mssql',
         host: configService.get('DB_HOST'),
-        port: configService.get('DB_PORT'),
+        port: Number(configService.get('DB_PORT')),
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
+        options: {
+          encrypt: false,
+          enableArithAbort: true,
+        },
       }),
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -32,6 +37,7 @@ import { RolesModule } from './roles/roles.module';
       playground: true,
     }),
     UsersModule,
-    RolesModule],
+    RolesModule,
+    TasksModule],
 })
 export class AppModule { }

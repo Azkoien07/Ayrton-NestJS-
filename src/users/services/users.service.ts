@@ -23,7 +23,7 @@ export class UsersService extends BaseDao<userEntity, number> {
         });
     }
 
-    // Get user by ID
+    // Find user by ID
     async getById(id: number): Promise<userEntity> {
         const user = await this.usersRepository.findOne({ where: { id } });
         if (!user) throw new NotFoundException('User not found');

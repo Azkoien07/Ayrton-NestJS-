@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RolesResolver } from './roles.resolver';
+import { RolesResolver } from './resolvers/roles.resolver';
 
 describe('RolesResolver', () => {
   let resolver: RolesResolver;
