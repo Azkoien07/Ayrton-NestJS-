@@ -21,7 +21,10 @@ export class taskEntity {
     @Column()
     type: string;
 
-    @Column()
+    @CreateDateColumn({
+        type: 'datetime2',
+        precision: 0,
+    })
     createdAt: Date;
 
     @Column()

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Bulk Upload Users</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-wrapper:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+        }
+
+        .file-text {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: transform 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        #result.show {
+            display: block;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loading {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        pre {
+            margin-top: 10px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 Carga Masiva de Usuarios</h1>
+        <p class="subtitle">Sube un archivo CSV o XLSX con los usuarios</p>
+
+        <div class="form-group">
+            <label>Selecciona tu archivo:</label>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" accept=".csv,.xlsx" onchange="displayFileName()" />
+                <div class="file-text">📁 Haz clic o arrastra tu archivo aquí</div>
+                <div class="file-name" id="fileName"></div>
+            </div>
+        </div>
+
+        <button onclick="uploadFile()" id="uploadBtn">Subir Archivo</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function displayFileName() {
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+
+            if (fileInput.files && fileInput.files[0]) {
+                fileName.textContent = `Archivo seleccionado: ${fileInput.files[0].name}`;
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('result');
+            const uploadBtn = document.getElementById('uploadBtn');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                resultDiv.className = 'error show';
+                resultDiv.innerHTML = '<strong>⚠️ Error:</strong> Por favor selecciona un archivo';
+                return;
+            }
+
+            const file = fileInput.files[0];
+
+            // Validar extensión
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['csv', 'xlsx'].includes(ext)) {
+                resultDiv.className = 'error show';
+                resultDiv.innerHTML = '<strong>⚠️ Error:</strong> Solo se permiten archivos CSV o XLSX';
+                return;
+            }
+
+            // Mostrar loading
+            uploadBtn.disabled = true;
+            resultDiv.className = 'loading show';
+            resultDiv.innerHTML = `
+                <strong>⏳ Subiendo archivo...</strong>
+                <div class="spinner"></div>
+            `;
+
+            // Crear el FormData según la especificación de GraphQL multipart
+            const operations = {
+                query: `mutation BulkUploadUsers($file: Upload!) {
+                    bulkUploadUsers(file: $file) {
+                        code
+                        message
+                        data
+                    }
+                }`,
+                variables: {
+                    file: null
+                }
+            };
+
+            const map = {
+                '0': ['variables.file']
+            };
+
+            const formData = new FormData();
+            formData.append('operations', JSON.stringify(operations));
+            formData.append('map', JSON.stringify(map));
+            formData.append('0', file);
+
+            try {
+                const response = await fetch('http://localhost:3000/graphql', {
+                    method: 'POST',
+                    body: formData,
+                    // NO incluir Content-Type, el navegador lo establecerá automáticamente con el boundary
+                });
+
+                const result = await response.json();
+
+                uploadBtn.disabled = false;
+
+                if (result.errors) {
+                    resultDiv.className = 'error show';
+                    resultDiv.innerHTML = `
+                        <strong>❌ Error en GraphQL:</strong>
+                        <pre>${JSON.stringify(result.errors, null, 2)}</pre>
+                    `;
+                } else if (result.data && result.data.bulkUploadUsers) {
+                    const data = result.data.bulkUploadUsers;
+                    if (data.code >= 200 && data.code < 300) {
+                        resultDiv.className = 'success show';
+                        resultDiv.innerHTML = `
+                            <strong>✅ ${data.message}</strong>
+                            ${data.data ? `<pre>${JSON.stringify(data.data, null, 2)}</pre>` : ''}
+                        `;
+                    } else {
+                        resultDiv.className = 'error show';
+                        resultDiv.innerHTML = `
+                            <strong>⚠️ ${data.message}</strong>
+                            <pre>Código: ${data.code}</pre>
+                        `;
+                    }
+                } else {
+                    resultDiv.className = 'error show';
+                    resultDiv.innerHTML = `
+                        <strong>❌ Respuesta inesperada:</strong>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                uploadBtn.disabled = false;
+                resultDiv.className = 'error show';
+                resultDiv.innerHTML = `
+                    <strong>❌ Error de conexión:</strong>
+                    <p>${error.message}</p>
+                    <p>Verifica que el servidor esté corriendo en http://localhost:3000</p>
+                `;
+            }
+        }
+
+        // Drag and drop
+        document.querySelector('.file-input-wrapper').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.currentTarget.style.borderColor = '#764ba2';
+            e.currentTarget.style.background = '#f8f9ff';
+        });
+
+        document.querySelector('.file-input-wrapper').addEventListener('dragleave', (e) => {
+            e.currentTarget.style.borderColor = '#667eea';
+            e.currentTarget.style.background = 'transparent';
+        });
+
+        document.querySelector('.file-input-wrapper').addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.currentTarget.style.borderColor = '#667eea';
+            e.currentTarget.style.background = 'transparent';
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('fileInput').files = files;
+                displayFileName();
+            }
+        });
+    </script>
+</body>
+
+</html>

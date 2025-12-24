@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
+import { graphqlUploadExpress } from 'graphql-upload-minimal';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -7,6 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { TasksModule } from './tasks/tasks.module';
+import { UploadScalar } from './utilities/upload.scalar';
 
 @Module({
   imports: [
@@ -34,10 +36,13 @@ import { TasksModule } from './tasks/tasks.module';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-      playground: true,
+      playground: false,
+      csrfPrevention: false,
     }),
     UsersModule,
     RolesModule,
     TasksModule],
+  providers: [UploadScalar],
+
 })
 export class AppModule { }

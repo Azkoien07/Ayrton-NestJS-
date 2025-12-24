@@ -12,7 +12,10 @@ export class roleEntity {
     @Column({ nullable: true })
     description: string;
 
-    @CreateDateColumn()
+    @CreateDateColumn({
+        type: 'datetime2',
+        precision: 0,
+    })
     createdAt: Date;
 
     @OneToMany(() => userEntity, (user) => user.role)

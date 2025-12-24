@@ -20,6 +20,9 @@ export class userEntity {
     @ManyToMany(() => taskEntity, (task) => task.users)
     tasks: taskEntity[];
 
-    @CreateDateColumn()
+    @CreateDateColumn({
+        type: 'datetime2',
+        precision: 0,
+    })
     createdAt: Date;
 }

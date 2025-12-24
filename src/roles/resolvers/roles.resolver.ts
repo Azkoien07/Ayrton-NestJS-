@@ -1,7 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Role } from '../models/role.model';
 import { RolesService } from '../services/roles.service';
-import { RolesResponse, RoleResponse } from '../models/role.response';
 import { ResponseFactory } from '@/src/common/http/response.factory';
 import { CreateRoleInput } from '../dto/createRole.input';
 import { roleEntity } from '../entity/role.entity';
@@ -14,43 +13,24 @@ export class RolesResolver {
     constructor(private readonly rolesService: RolesService) { }
 
     // 1. Get all roles with pagination
-    @Query(() => RolesResponse) async roles(@Args('page',) page: number, @Args('limit',) limit: number,): Promise<RolesResponse> {
+    @Query(() => ApiResponse) async roles(@Args('page',) page: number, @Args('limit',) limit: number,): Promise<ApiResponse<Role[]>> {
         const rolesData = await this.rolesService.findAll(page, limit);
 
         if (rolesData.length === 0) {
-            const response = ResponseFactory.notFound('No roles found');
-            return {
-                code: response.code,
-                message: response.message,
-                roles: []
-            };
+            return ResponseFactory.notFound('No roles found');
         }
 
-        return {
-            code: 200,
-            message: 'Roles retrieved successfully',
-            roles: rolesData
-        };
+        return ResponseFactory.success('Roles retrieved successfully', rolesData);
     }
 
     // 2. Get role by ID
-    @Query(() => RoleResponse) async role(@Args('id') id: number,
-    ): Promise<RoleResponse> {
+    @Query(() => ApiResponse) async role(@Args('id') id: number,
+    ): Promise<ApiResponse<Role>> {
         try {
             const roleData = await this.rolesService.getById(id);
-            const response = ResponseFactory.success('Role retrieved successfully', roleData);
-            return {
-                code: response.code,
-                message: response.message,
-                role: roleData
-            };
+            return ResponseFactory.success('Role retrieved successfully', roleData);
         } catch (error) {
-            const response = ResponseFactory.notFound('Role not found');
-            return {
-                code: response.code,
-                message: response.message,
-                role: undefined
-            };
+            return ResponseFactory.notFound('Role not found');
         }
     }
 
@@ -60,53 +40,26 @@ export class RolesResolver {
         role.name = input.name;
         role.description = input.description || "N/A";
         await this.rolesService.create(role);
-        const response = ResponseFactory.success('Role created successfully');
-        return {
-            code: response.code,
-            message: response.message
-        };
+        return ResponseFactory.success('Role created successfully');
     }
 
     // 4. Update an existing role
-    @Mutation(() => RoleResponse) async updateRole(@Args('id') id: number, @Args('input') input: CreateRoleInput,):
-        Promise<RoleResponse> {
+    @Mutation(() => ApiResponse) async updateRole(@Args('id') id: number, @Args('input') input: CreateRoleInput,): Promise<ApiResponse<Role>> {
         try {
-            const role = await this.rolesService.getById(id);
-            role.name = input.name;
-            const updatedRole = await this.rolesService.update(id, role);
-            const response = ResponseFactory.success('Role updated successfully', updatedRole);
-            return {
-                code: response.code,
-                message: response.message,
-                role: updatedRole
-            };
-        } catch (error) {
-            const response = ResponseFactory.notFound('Role not found');
-            return {
-                code: response.code,
-                message: response.message,
-                role: undefined
-            };
+            const updatedRole = await this.rolesService.update(id, input);
+            return ResponseFactory.success('Role updated successfully', updatedRole,);
+        } catch {
+            return ResponseFactory.notFound('Role not found');
         }
     }
 
     // 5. Delete a role by ID
-    @Mutation(() => RolesResponse) async deleteRole(@Args('id') id: number,): Promise<RolesResponse> {
+    @Mutation(() => ApiResponse) async deleteRole(@Args('id') id: number,): Promise<ApiResponse> {
         try {
             await this.rolesService.delete(id);
-            const response = ResponseFactory.success('Role deleted successfully');
-            return {
-                code: response.code,
-                message: response.message,
-                roles: []
-            };
+            return ResponseFactory.success('Role deleted successfully');
         } catch (error) {
-            const response = ResponseFactory.notFound('Role not found');
-            return {
-                code: response.code,
-                message: response.message,
-                roles: []
-            };
+            return ResponseFactory.notFound('Role not found');
         }
     }
 }

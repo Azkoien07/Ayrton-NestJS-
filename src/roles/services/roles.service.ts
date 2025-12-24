@@ -51,10 +51,20 @@ export class RolesService extends BaseDao<roleEntity, number> {
     }
 
     // Update an existing Role
-    async update(id: number, entity: Partial<roleEntity>,): Promise<roleEntity> {
-        await this.rolesRepository.update(id, entity);
-        return this.getById(id);
+    async update(id: number, input: Partial<roleEntity>): Promise<roleEntity> {
+        const role = await this.rolesRepository.findOne({
+            where: { id: Number(id) },
+        });
+
+        if (!role) {
+            throw new Error('Role not found');
+        }
+
+        Object.assign(role, input);
+
+        return this.rolesRepository.save(role);
     }
+
 
     // Delete a Role by ID
     async delete(id: number): Promise<void> {
