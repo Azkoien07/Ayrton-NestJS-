@@ -1,4 +1,4 @@
-import { Query, Resolver, Args, Mutation } from '@nestjs/graphql';
+import { Query, Resolver, Args, Mutation, Int, ID } from '@nestjs/graphql';
 import { Task } from '../models/task.model';
 import { TasksService } from '../service/tasks.service';
 import { ResponseFactory } from '@/src/common/http/response.factory';
@@ -11,16 +11,26 @@ export class TasksResolver {
     constructor(private readonly tasksService: TasksService) { }
 
     // 1. Get all tasks with pagination
-    @Query(() => ApiResponse) async tasks(@Args('page',) page: number, @Args('limit',) limit: number,): Promise<ApiResponse<Task[]>> {
-        const tasksData = await this.tasksService.findAll(page, limit);
-        if (tasksData.length === 0) {
+    @Query(() => ApiResponse)
+    async tasks(
+        @Args('page', { type: () => Int }) page: number,
+        @Args('limit', { type: () => Int }) limit: number
+    ): Promise<ApiResponse> {
+        const response = await this.tasksService.findAll(page, limit);
+
+        if (response.data.length === 0) {
             return ResponseFactory.notFound('No tasks found');
         }
-        return ResponseFactory.success('Tasks retrieved successfully', tasksData);
+
+        return ResponseFactory.success(
+            'Tasks retrieved successfully',
+            response,
+        );
     }
 
     // 2. Get task by ID
-    @Query(() => ApiResponse) async task(@Args('id') id: number,): Promise<ApiResponse<Task>> {
+    @Query(() => ApiResponse)
+    async task(@Args('id', { type: () => ID }) id: number): Promise<ApiResponse<Task>> {
         try {
             const taskData = await this.tasksService.getById(id);
             return ResponseFactory.success('Task retrieved successfully', taskData);
@@ -45,17 +55,13 @@ export class TasksResolver {
     }
 
     // 4. Update an existing task
-    @Mutation(() => ApiResponse) async updateTask(@Args('id') id: number, @Args('input') input: CreateTaskInput,): Promise<ApiResponse<Task>> {
+    @Mutation(() => ApiResponse)
+    async updateTask(
+        @Args('id', { type: () => ID }) id: number,
+        @Args('input') input: CreateTaskInput
+    ): Promise<ApiResponse<Task>> {
         try {
-            const task = await this.tasksService.getById(id);
-            task.name = input.name || task.name;
-            task.description = input.description || task.description;
-            task.state = input.state || task.state;
-            task.priority = input.priority || task.priority;
-            task.type = input.type || task.type;
-            task.expirationDate = input.expirationDate || task.expirationDate;
-            task.reminder = input.reminder !== undefined ? input.reminder : task.reminder;
-            const updateTask = await this.tasksService.update(id, task);
+            const updateTask = await this.tasksService.update(id, input);
             return ResponseFactory.success('Task updated successfully', updateTask);
         } catch (error) {
             return ResponseFactory.notFound('Task not found');
@@ -63,7 +69,8 @@ export class TasksResolver {
     }
 
     // 5. Delete a task by ID
-    @Mutation(() => ApiResponse) async deleteTask(@Args('id') id: number,): Promise<ApiResponse> {
+    @Mutation(() => ApiResponse)
+    async deleteTask(@Args('id', { type: () => ID }) id: number): Promise<ApiResponse> {
         try {
             await this.tasksService.delete(id);
             return ResponseFactory.success('Task deleted successfully');

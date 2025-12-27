@@ -1,18 +1,16 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { userEntity } from '../entity/user.entity';
+import { userEntity } from '@/src/users/entity/user.entity';
 import { BaseDao } from '@/src/common/dao/base.dao';
-import * as fs from 'fs';
-import csv from 'csv-parser';
 import * as bcrypt from 'bcrypt';
-import * as ExcelJS from 'exceljs';
+import { PaginatedResult } from '@/src/utilities/paginatedResponse';
+import { BulkImportHelper } from '@/src/utilities/bulk-import.helper';
 
 @Injectable()
 export class UsersService extends BaseDao<userEntity, number> {
 
     private readonly logger = new Logger(UsersService.name);
-    private readonly BATCH_SIZE = 1000;
 
     // Implementing abstract methods from BaseDao
     constructor(
@@ -23,11 +21,33 @@ export class UsersService extends BaseDao<userEntity, number> {
     }
 
     // Find all users with pagination
-    async findAll(page: number, limit: number): Promise<userEntity[]> {
-        return this.usersRepository.find({
-            skip: (page - 1) * limit,
-            take: limit,
+    async findAll(page: number, limit = 10,): Promise<PaginatedResult<userEntity>> {
+        const currentPage = Math.max(page, 1);
+        const pageSize = Math.min(limit, 10);
+        const offset = (currentPage - 1) * pageSize;
+
+        const data = await this.usersRepository.find({
+            order: { id: 'ASC' },
+            skip: offset,
+            take: pageSize,
         });
+
+        // Conditional total count calculation
+        let total = 0;
+        let totalPages = 0;
+
+        if (currentPage === 1) {
+            total = await this.usersRepository.count();
+            totalPages = Math.ceil(total / pageSize);
+        }
+
+        return {
+            data,
+            page: currentPage,
+            limit: pageSize,
+            total,
+            totalPages,
+        };
     }
 
     // Find user by ID
@@ -60,106 +80,59 @@ export class UsersService extends BaseDao<userEntity, number> {
     async addMassiveUsers(filepath: string, originalname: string): Promise<void> {
         const ext = originalname.split('.').pop()?.toLowerCase();
 
-        this.logger.log(`Starting massive import from file: ${originalname}`);
-
-        if (ext === 'csv') {
-            await this.importFromCsv(filepath);
-
-        } else if (ext === 'xlsx') {
-            await this.importFromXlsx(filepath);
-        } else {
-            throw new Error('Unsupported file format. Please upload a CSV or XLSX file.');
-
-        }
-        this.logger.log(`Finished massive import from file: ${originalname}`);
-    }
-
-    /* ======================
-       CSV IMPORT
-    ====================== */
-    private async importFromCsv(FilePath: string): Promise<void> {
-        let batch: Partial<userEntity>[] = [];
-
-        const stream = fs.createReadStream(FilePath).pipe(csv());
-
-        for await (const row of stream) {
-            const user = await this.mapRowToUser(row);
-            if (!user) continue;
-
-            batch.push(user);
-
-            if (batch.length >= this.BATCH_SIZE) {
-                await this.usersRepository.save(batch);
-                batch = [];
-            }
-        }
-
-        if (batch.length) {
-            await this.insertBatch(batch);
-        }
-
-    }
-
-    /* ======================
-       XLSX IMPORT (STREAM)
-    ====================== */
-    private async importFromXlsx(filePath: string): Promise<void> {
-        const workbook = new ExcelJS.stream.xlsx.WorkbookReader(filePath, {
-            entries: 'emit',
-            worksheets: 'emit',
-            sharedStrings: 'cache',
-            hyperlinks: 'ignore',
-        });
-        let batch: Partial<userEntity>[] = [];
-
-        for await (const worksheet of workbook) {
-            for await (const row of worksheet) {
-                if (row.number === 1) continue; // Skip header row
-
-                const data = {
-                    email: row.getCell(1).text,
-                    password: row.getCell(2).text,
-                    roleId: Number(row.getCell(3).text) || 1,
-                };
-
-                const user = await this.mapRowToUser(data);
-                if (!user) continue;
-
-                batch.push(user);
-
-                if (batch.length >= this.BATCH_SIZE) {
-                    await this.insertBatch(batch);
-                    batch = [];
-                }
-            }
-        }
-
-        if (batch.length) {
-            await this.insertBatch(batch);
-        }
-    }
-
-    /* ======================
-       HELPERS
-    ====================== */
-    private async mapRowToUser(row: any): Promise<Partial<userEntity> | null> {
-        if (!row.email || !row.password) return null;
-
-        return {
-            email: row.email.trim().toLowerCase(),
-            password: await bcrypt.hash(row.password, 10),
-            role: { id: Number(row.roleId) || 1 } as any,
+        const config = {
+            repository: this.usersRepository,
+            logger: this.logger,
+            batchSize: 400,
+            entityName: 'users',
+            ignoreDuplicates: true,
         };
-    }
 
-    private async insertBatch(batch: Partial<userEntity>[]): Promise<void> {
-        await this.usersRepository
-            .createQueryBuilder()
-            .insert()
-            .into(userEntity)
-            .values(batch)
-            .execute();
+        const rowMapper = async (row: any): Promise<Partial<userEntity> | null> => {
+            let email: string;
+            let password: string;
+            let roleId: number;
 
-        this.logger.log(`Inserted batch of ${batch.length}`);
+            if (row.getCell) {
+                // XLSX - Formato: Col1=Email, Col2=Password, Col3=RoleId
+                const emailCell = row.getCell(1);
+                const passwordCell = row.getCell(2);
+                const roleCell = row.getCell(3);
+
+                email = emailCell?.value ? String(emailCell.value).trim() : '';
+                password = passwordCell?.value ? String(passwordCell.value).trim() : '';
+                roleId = roleCell?.value ? Number(roleCell.value) : 1;
+            } else {
+                // CSV - Plain object
+                email = row.email ? String(row.email).trim() : '';
+                password = row.password ? String(row.password).trim() : '';
+                roleId = row.roleId ? Number(row.roleId) : 1;
+            }
+
+            // Validar email y password
+            if (!email || !password || !email.includes('@')) {
+                return null;
+            }
+
+            // Usar 4 rondas de bcrypt para importaciones masivas
+            return {
+                email: email.toLowerCase(),
+                password: await bcrypt.hash(password, 4),
+                role: { id: roleId } as any,
+            };
+        };
+
+        try {
+            if (ext === 'csv') {
+                await BulkImportHelper.importFromCsv(filepath, config, rowMapper);
+            } else if (ext === 'xlsx') {
+                await BulkImportHelper.importFromXlsx(filepath, config, rowMapper);
+            } else {
+                throw new Error('Unsupported file format. Please upload a CSV or XLSX file.');
+            }
+        } catch (error) {
+            this.logger.error(`[UsersService] Bulk import failed: ${error.message}`, error.stack);
+            throw error;
+        }
     }
 }

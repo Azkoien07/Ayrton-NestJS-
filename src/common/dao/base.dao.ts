@@ -1,8 +1,12 @@
 // May be used in the future for common DAO methods
+import { PaginatedResult } from '@/src/utilities/paginatedResponse';
 export abstract class BaseDao<T, ID> {
 
     // Find all entities with pagination
-    abstract findAll(page: number, limit: number): Promise<T[]>;
+    abstract findAll(
+        page: number,
+        limit: number,
+    ): Promise<PaginatedResult<T>>;
 
     // Get entity by ID
     abstract getById(id: ID): Promise<T | null>;

@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver, Int, ID } from '@nestjs/graphql';
 import { Role } from '../models/role.model';
 import { RolesService } from '../services/roles.service';
 import { ResponseFactory } from '@/src/common/http/response.factory';
@@ -13,19 +13,26 @@ export class RolesResolver {
     constructor(private readonly rolesService: RolesService) { }
 
     // 1. Get all roles with pagination
-    @Query(() => ApiResponse) async roles(@Args('page',) page: number, @Args('limit',) limit: number,): Promise<ApiResponse<Role[]>> {
-        const rolesData = await this.rolesService.findAll(page, limit);
+    @Query(() => ApiResponse)
+    async roles(
+        @Args('page', { type: () => Int }) page: number,
+        @Args('limit', { type: () => Int }) limit: number
+    ): Promise<ApiResponse> {
+        const response = await this.rolesService.findAll(page, limit);
 
-        if (rolesData.length === 0) {
+        if (response.data.length === 0) {
             return ResponseFactory.notFound('No roles found');
         }
 
-        return ResponseFactory.success('Roles retrieved successfully', rolesData);
+        return ResponseFactory.success(
+            'Roles retrieved successfully',
+            response,
+        );
     }
 
     // 2. Get role by ID
-    @Query(() => ApiResponse) async role(@Args('id') id: number,
-    ): Promise<ApiResponse<Role>> {
+    @Query(() => ApiResponse)
+    async role(@Args('id', { type: () => ID }) id: number): Promise<ApiResponse<Role>> {
         try {
             const roleData = await this.rolesService.getById(id);
             return ResponseFactory.success('Role retrieved successfully', roleData);
@@ -44,7 +51,11 @@ export class RolesResolver {
     }
 
     // 4. Update an existing role
-    @Mutation(() => ApiResponse) async updateRole(@Args('id') id: number, @Args('input') input: CreateRoleInput,): Promise<ApiResponse<Role>> {
+    @Mutation(() => ApiResponse)
+    async updateRole(
+        @Args('id', { type: () => ID }) id: number,
+        @Args('input') input: CreateRoleInput
+    ): Promise<ApiResponse<Role>> {
         try {
             const updatedRole = await this.rolesService.update(id, input);
             return ResponseFactory.success('Role updated successfully', updatedRole,);
@@ -54,7 +65,8 @@ export class RolesResolver {
     }
 
     // 5. Delete a role by ID
-    @Mutation(() => ApiResponse) async deleteRole(@Args('id') id: number,): Promise<ApiResponse> {
+    @Mutation(() => ApiResponse)
+    async deleteRole(@Args('id', { type: () => ID }) id: number): Promise<ApiResponse> {
         try {
             await this.rolesService.delete(id);
             return ResponseFactory.success('Role deleted successfully');

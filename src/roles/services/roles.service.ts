@@ -3,6 +3,7 @@ import { BaseDao } from '@/src/common/dao/base.dao';
 import { roleEntity } from '../entity/role.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PaginatedResult } from '@/src/utilities/paginatedResponse';
 
 @Injectable()
 export class RolesService extends BaseDao<roleEntity, number> {
@@ -31,11 +32,19 @@ export class RolesService extends BaseDao<roleEntity, number> {
     }
 
     // Find all Roles With Pagination
-    async findAll(page: number, limit: number): Promise<roleEntity[]> {
-        return this.rolesRepository.find({
+    async findAll(page: number, limit: number): Promise<PaginatedResult<roleEntity>> {
+        const [data, total] = await this.rolesRepository.findAndCount({
             skip: (page - 1) * limit,
             take: limit,
         });
+
+        return {
+            data,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        }
     }
 
     // Find Role By ID

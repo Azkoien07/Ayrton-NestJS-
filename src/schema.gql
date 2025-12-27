@@ -46,35 +46,48 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://
 """
 scalar JSON
 
+type DocumentType {
+  id: ID!
+  name: String!
+  acronym: String!
+  state: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
 """Upload custom scalar type"""
 scalar Upload
 
 type Query {
-  users(page: Float!, limit: Float!): ApiResponse!
-  user(id: Float!): ApiResponse!
-  roles(page: Float!, limit: Float!): ApiResponse!
-  role(id: Float!): ApiResponse!
-  tasks(page: Float!, limit: Float!): ApiResponse!
-  task(id: Float!): ApiResponse!
+  users(page: Int!, limit: Int!): ApiResponse!
+  user(id: ID!): ApiResponse!
+  roles(page: Int!, limit: Int!): ApiResponse!
+  role(id: ID!): ApiResponse!
+  tasks(page: Int!, limit: Int!): ApiResponse!
+  task(id: ID!): ApiResponse!
+  persons(page: Int!, limit: Int!): ApiResponse!
+  person(id: ID!): ApiResponse!
 }
 
 type Mutation {
-  createUser(input: CreateUserInput!): ApiResponse!
-  updateUser(id: Float!, input: CreateUserInput!): ApiResponse!
-  deleteUser(id: Float!): ApiResponse!
+  updateUser(id: ID!, input: CreateUserInput!): ApiResponse!
   bulkUploadUsers(file: Upload!): ApiResponse!
   createRole(input: CreateRoleInput!): ApiResponse!
-  updateRole(id: Float!, input: CreateRoleInput!): ApiResponse!
-  deleteRole(id: Float!): ApiResponse!
+  updateRole(id: ID!, input: CreateRoleInput!): ApiResponse!
+  deleteRole(id: ID!): ApiResponse!
   createTask(input: CreateTaskInput!): ApiResponse!
-  updateTask(id: Float!, input: CreateTaskInput!): ApiResponse!
-  deleteTask(id: Float!): ApiResponse!
+  updateTask(id: ID!, input: CreateTaskInput!): ApiResponse!
+  deleteTask(id: ID!): ApiResponse!
+  createPerson(input: CreatePersonInput!): ApiResponse!
+  updatePerson(id: ID!, input: CreatePersonInput!): ApiResponse!
+  deletePerson(id: ID!): ApiResponse!
 }
 
 input CreateUserInput {
   email: String!
   password: String!
   roleId: Int = 1
+  personId: Int!
 }
 
 input CreateRoleInput {
@@ -90,4 +103,19 @@ input CreateTaskInput {
   type: String!
   expirationDate: DateTime!
   reminder: Boolean!
+}
+
+input CreatePersonInput {
+  firstName: String!
+  lastName: String!
+  document: String!
+  phone: String!
+  bloodType: String!
+  address: String!
+  photo: String
+  state: Boolean!
+  documentTypeId: Int!
+  email: String!
+  password: String!
+  roleId: Int = 1
 }

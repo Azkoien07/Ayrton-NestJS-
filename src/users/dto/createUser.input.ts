@@ -11,4 +11,8 @@ export class CreateUserInput {
 
     @Field(() => Int, { nullable: true, defaultValue: 1 })
     roleId?: number;
+
+    @Field(() => Int)
+    personId: number;
+
 }

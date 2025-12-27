@@ -8,7 +8,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { TasksModule } from './tasks/tasks.module';
+import { PersonsModule } from './persons/persons.module';
 import { UploadScalar } from './utilities/upload.scalar';
+import { DocumentTypeModule } from './document-type/document-type.module';
 
 @Module({
   imports: [
@@ -41,7 +43,9 @@ import { UploadScalar } from './utilities/upload.scalar';
     }),
     UsersModule,
     RolesModule,
-    TasksModule],
+    TasksModule,
+    PersonsModule,
+    DocumentTypeModule],
   providers: [UploadScalar],
 
 })

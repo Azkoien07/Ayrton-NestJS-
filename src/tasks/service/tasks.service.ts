@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { taskEntity } from '../entity/task.entity';
 import { Repository } from 'typeorm';
+import { PaginatedResult } from '@/src/utilities/paginatedResponse';
 
 @Injectable()
 export class TasksService extends BaseDao<taskEntity, number> {
@@ -16,11 +17,19 @@ export class TasksService extends BaseDao<taskEntity, number> {
     }
 
     // Find all tasks with pagination
-    async findAll(page: number, limit: number): Promise<taskEntity[]> {
-        return this.tasksRepository.find({
+    async findAll(page: number, limit: number): Promise<PaginatedResult<taskEntity>> {
+        const [data, total] = await this.tasksRepository.findAndCount({
             skip: (page - 1) * limit,
             take: limit,
         });
+
+        return {
+            data,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        }
     }
 
 

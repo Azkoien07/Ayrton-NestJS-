@@ -21,13 +21,13 @@ async function bootstrap() {
   });
 
   // Upload middleware
-  app.use(graphqlUploadExpress({ 
-    maxFileSize: 50_000_000, 
+  app.use(graphqlUploadExpress({
+    maxFileSize: 50_000_000,
     maxFiles: 1
   }));
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`🚀 Server running on http://localhost:${port}/graphql`);
+  //console.log(`🚀 Server running on http://localhost:${port}/graphql`);
 }
 bootstrap();
