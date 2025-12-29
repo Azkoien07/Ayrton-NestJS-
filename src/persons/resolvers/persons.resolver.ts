@@ -9,6 +9,10 @@ import { documentTypeEntity } from '@/src/document-type/entity/documentType.enti
 import { userEntity } from '@/src/users/entity/user.entity';
 import { roleEntity } from '@/src/roles/entity/role.entity';
 import * as bcrypt from 'bcrypt';
+import { UploadScalar } from '@/src/utilities/upload.scalar';
+import { createWriteStream } from 'fs';
+import { join } from 'path';
+import { v4 as uuid } from 'uuid';
 
 @Resolver(() => Person)
 export class PersonsResolver {
@@ -108,6 +112,71 @@ export class PersonsResolver {
             return ResponseFactory.success('Person deleted successfully');
         } catch (error) {
             return ResponseFactory.notFound('Person not found');
+        }
+    }
+
+    // 6. Bulk Upload Persons with Users
+    @Mutation(() => ApiResponse)
+    async bulkUploadPersons(
+        @Args({ name: 'file', type: () => UploadScalar }) file: any,
+    ): Promise<ApiResponse> {
+        try {
+            if (!file) {
+                return ResponseFactory.badRequest('File not provided');
+            }
+
+            let fileData;
+            if (file.promise) {
+                fileData = await file.promise;
+            } else if (file.file) {
+                fileData = file.file;
+            } else if (file instanceof Promise) {
+                fileData = await file;
+            } else {
+                fileData = file;
+            }
+
+            const { createReadStream, filename } = fileData;
+
+            if (!filename) {
+                return ResponseFactory.badRequest('Filename not found');
+            }
+
+            const ext = filename.split('.').pop()?.toLowerCase();
+
+            if (!ext) {
+                return ResponseFactory.badRequest('File extension not found');
+            }
+
+            if (!['csv', 'xlsx'].includes(ext)) {
+                return ResponseFactory.badRequest('Invalid file type. Only CSV and XLSX are supported.');
+            }
+
+            const uploadDir = join(process.cwd(), 'uploads', 'temp');
+            const fs = require('fs');
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+
+            const uniqueFilename = `${uuid()}-${filename}`;
+            const filepath = join(uploadDir, uniqueFilename);
+
+            await new Promise<void>((resolve, reject) => {
+                const writeStream = createWriteStream(filepath);
+                createReadStream()
+                    .pipe(writeStream)
+                    .on('finish', resolve)
+                    .on('error', reject);
+            });
+
+            await this.personsService.addMassivePersons(filepath, filename);
+
+            // Cleanup temp file
+            fs.unlinkSync(filepath);
+
+            return ResponseFactory.success('Persons and Users bulk upload completed successfully');
+        } catch (error) {
+            return ResponseFactory.error(`Bulk upload failed: ${error.message}`);
         }
     }
 }

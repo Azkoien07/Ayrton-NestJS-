@@ -13,6 +13,7 @@ export interface BulkImportConfig<T extends ObjectLiteral> {
     batchSize?: number;
     entityName?: string;
     ignoreDuplicates?: boolean; // Skip duplicate records instead of failing
+    customInserter?: CustomBatchInserter<T>; // Custom insertion logic for complex cases
 }
 
 /**
@@ -34,11 +35,47 @@ export interface ImportStatistics {
 export type RowMapper<T extends ObjectLiteral> = (row: any) => Promise<Partial<T> | null>;
 
 /**
+ * Custom batch inserter function for complex insertions (e.g., multi-table inserts)
+ * Returns the number of successfully inserted records
+ */
+export type CustomBatchInserter<T extends ObjectLiteral> = (
+    batch: Partial<T>[],
+    repository: Repository<T>,
+) => Promise<number>;
+
+/**
  * Generic helper class for bulk importing data from CSV and XLSX files
  * Can be used with any TypeORM entity
  */
 export class BulkImportHelper {
     private static readonly DEFAULT_BATCH_SIZE = 400;
+
+    /**
+     * Imports data from CSV or XLSX file (auto-detects format)
+     * @param filePath Path to the file
+     * @param originalName Original filename with extension
+     * @param config Import configuration
+     * @param rowMapper Function to map row data to entity
+     * @returns Import statistics
+     */
+    static async importFromFile<T extends ObjectLiteral>(
+        filePath: string,
+        originalName: string,
+        config: BulkImportConfig<T>,
+        rowMapper: RowMapper<T>,
+    ): Promise<ImportStatistics> {
+        const ext = originalName.split('.').pop()?.toLowerCase();
+
+        if (!ext || !['csv', 'xlsx'].includes(ext)) {
+            throw new Error('Unsupported file format. Please upload a CSV or XLSX file.');
+        }
+
+        if (ext === 'csv') {
+            return this.importFromCsv(filePath, config, rowMapper);
+        } else {
+            return this.importFromXlsx(filePath, config, rowMapper);
+        }
+    }
 
     /**
      * Imports data from CSV file
@@ -86,7 +123,7 @@ export class BulkImportHelper {
                 if (batch.length >= batchSize) {
                     stats.totalBatches++;
                     const batchStart = Date.now();
-                    const inserted = await this.insertBatch(batch, repository, logger, ignoreDuplicates);
+                    const inserted = await this.insertBatch(batch, repository, logger, ignoreDuplicates, config.customInserter);
                     const batchTime = Date.now() - batchStart;
                     stats.totalInserted += inserted;
                     const duplicates = batch.length - inserted;
@@ -100,7 +137,7 @@ export class BulkImportHelper {
             // Insert remaining records
             if (batch.length > 0) {
                 stats.totalBatches++;
-                const inserted = await this.insertBatch(batch, repository, logger, ignoreDuplicates);
+                const inserted = await this.insertBatch(batch, repository, logger, ignoreDuplicates, config.customInserter);
                 stats.totalInserted += inserted;
                 const duplicates = batch.length - inserted;
                 stats.totalSkipped += duplicates;
@@ -185,7 +222,7 @@ export class BulkImportHelper {
                     if (batch.length >= batchSize) {
                         stats.totalBatches++;
                         const batchStart = Date.now();
-                        const inserted = await this.insertBatch(batch, repository, logger, ignoreDuplicates);
+                        const inserted = await this.insertBatch(batch, repository, logger, ignoreDuplicates, config.customInserter);
                         const batchTime = Date.now() - batchStart;
                         stats.totalInserted += inserted;
                         const duplicates = batch.length - inserted;
@@ -200,7 +237,7 @@ export class BulkImportHelper {
             // Insert remaining records
             if (batch.length > 0) {
                 stats.totalBatches++;
-                const inserted = await this.insertBatch(batch, repository, logger, ignoreDuplicates);
+                const inserted = await this.insertBatch(batch, repository, logger, ignoreDuplicates, config.customInserter);
                 stats.totalInserted += inserted;
                 const duplicates = batch.length - inserted;
                 stats.totalSkipped += duplicates;
@@ -233,17 +270,26 @@ export class BulkImportHelper {
      * @param batch Array of entities to insert
      * @param repository TypeORM repository
      * @param logger Logger instance
+     * @param ignoreDuplicates Skip duplicate records
+     * @param customInserter Optional custom insertion function
      */
     private static async insertBatch<T extends ObjectLiteral>(
         batch: Partial<T>[],
         repository: Repository<T>,
         logger: Logger,
         ignoreDuplicates: boolean = false,
+        customInserter?: CustomBatchInserter<T>,
     ): Promise<number> {
         const startTime = Date.now();
         let inserted = 0;
 
         try {
+            // Use custom inserter if provided
+            if (customInserter) {
+                inserted = await customInserter(batch, repository);
+                return inserted;
+            }
+
             if (ignoreDuplicates) {
                 // Estrategia optimizada: Intentar inserción por lote primero
                 try {

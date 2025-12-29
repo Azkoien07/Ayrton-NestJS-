@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Bulk Upload Users</title>
+    <title>Test Bulk Upload Persons</title>
     <style>
         * {
             margin: 0;
@@ -177,8 +177,8 @@
 
 <body>
     <div class="container">
-        <h1>🚀 Carga Masiva de Usuarios</h1>
-        <p class="subtitle">Sube un archivo CSV o XLSX con los usuarios</p>
+        <h1>🚀 Carga Masiva de Personas y Usuarios</h1>
+        <p class="subtitle">Sube un archivo CSV o XLSX con 12 columnas (Person + User)</p>
 
         <div class="form-group">
             <label>Selecciona tu archivo:</label>
@@ -235,8 +235,8 @@
 
             // Crear el FormData según la especificación de GraphQL multipart
             const operations = {
-                query: `mutation BulkUploadUsers($file: Upload!) {
-                    bulkUploadUsers(file: $file) {
+                query: `mutation BulkUploadPersons($file: Upload!) {
+                    bulkUploadPersons(file: $file) {
                         code
                         message
                         data
@@ -273,8 +273,8 @@
                         <strong>❌ Error en GraphQL:</strong>
                         <pre>${JSON.stringify(result.errors, null, 2)}</pre>
                     `;
-                } else if (result.data && result.data.bulkUploadUsers) {
-                    const data = result.data.bulkUploadUsers;
+                } else if (result.data && result.data.bulkUploadPersons) {
+                    const data = result.data.bulkUploadPersons;
                     if (data.code >= 200 && data.code < 300) {
                         resultDiv.className = 'success show';
                         resultDiv.innerHTML = `

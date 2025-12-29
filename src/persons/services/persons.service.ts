@@ -1,12 +1,15 @@
 import { BaseDao } from '@/src/common/dao/base.dao';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { personEntity } from '../entity/person.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Entity, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { PaginatedResult } from '@/src/utilities/paginatedResponse';
+import { PersonsBulkImportHelper } from '../helpers/persons-bulk-import.helper';
 
 @Injectable()
 export class PersonsService extends BaseDao<personEntity, number> {
+
+    private readonly logger = new Logger(PersonsService.name);
 
     // Implementing abstract methods from BaseDao
     constructor(
@@ -70,5 +73,15 @@ export class PersonsService extends BaseDao<personEntity, number> {
         if (result.affected === 0) {
             throw new Error('Person not found');
         }
+    }
+
+    // Add Massive Persons with Users (Optimized with parallel password hashing)
+    async addMassivePersons(filepath: string, originalname: string): Promise<void> {
+        await PersonsBulkImportHelper.importFromFile(
+            filepath,
+            originalname,
+            this.personsRepository,
+            this.logger,
+        );
     }
 }

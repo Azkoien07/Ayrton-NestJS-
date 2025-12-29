@@ -81,6 +81,7 @@ type Mutation {
   createPerson(input: CreatePersonInput!): ApiResponse!
   updatePerson(id: ID!, input: CreatePersonInput!): ApiResponse!
   deletePerson(id: ID!): ApiResponse!
+  bulkUploadPersons(file: Upload!): ApiResponse!
 }
 
 input CreateUserInput {
