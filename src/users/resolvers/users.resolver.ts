@@ -18,10 +18,7 @@ export class UsersResolver {
     constructor(private readonly usersService: UsersService, private readonly rolesService: RolesService) { }
 
     // 1. Get all users with pagination
-    @Query(() => UserPage)
-    async users(
-        @Args('page', { type: () => Int }) page: number,
-        @Args('limit', { type: () => Int }) limit: number
+    @Query(() => UserPage) async users(@Args('page', { type: () => Int }) page: number, @Args('limit', { type: () => Int }) limit: number
     ): Promise<UserPage> {
         const response = await this.usersService.findAll(page, limit);
 
