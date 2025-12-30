@@ -1,5 +1,6 @@
 import { Query, Resolver, Args, Mutation, Int, ID } from '@nestjs/graphql';
 import { Task } from '../models/task.model';
+import { TaskPage, TaskSingle } from '../models/task.page';
 import { TasksService } from '../service/tasks.service';
 import { ResponseFactory } from '@/src/common/http/response.factory';
 import { ApiResponse } from '@/src/common/http/response';
@@ -11,36 +12,53 @@ export class TasksResolver {
     constructor(private readonly tasksService: TasksService) { }
 
     // 1. Get all tasks with pagination
-    @Query(() => ApiResponse)
+    @Query(() => TaskPage)
     async tasks(
         @Args('page', { type: () => Int }) page: number,
         @Args('limit', { type: () => Int }) limit: number
-    ): Promise<ApiResponse> {
+    ): Promise<TaskPage> {
         const response = await this.tasksService.findAll(page, limit);
 
         if (response.data.length === 0) {
-            return ResponseFactory.notFound('No tasks found');
+            return {
+                code: 404,
+                message: 'No tasks found',
+                data: [],
+            };
         }
 
-        return ResponseFactory.success(
-            'Tasks retrieved successfully',
-            response,
-        );
+        return {
+            code: 200,
+            message: 'Tasks retrieved successfully',
+            data: response.data,
+            page: response.page,
+            limit: response.limit,
+            total: response.total,
+            totalPages: response.totalPages,
+        };
     }
 
     // 2. Get task by ID
-    @Query(() => ApiResponse)
-    async task(@Args('id', { type: () => ID }) id: number): Promise<ApiResponse<Task>> {
+    @Query(() => TaskSingle)
+    async task(@Args('id', { type: () => ID }) id: number): Promise<TaskSingle> {
         try {
             const taskData = await this.tasksService.getById(id);
-            return ResponseFactory.success('Task retrieved successfully', taskData);
+            return {
+                code: 200,
+                message: 'Task retrieved successfully',
+                data: taskData,
+            };
         } catch (error) {
-            return ResponseFactory.notFound('Task not found');
+            return {
+                code: 404,
+                message: 'Task not found',
+            };
         }
     }
 
     // 3. Create a new task
-    @Mutation(() => ApiResponse) async createTask(@Args('input') input: CreateTaskInput,): Promise<ApiResponse> {
+    @Mutation(() => ApiResponse)
+    async createTask(@Args('input') input: CreateTaskInput): Promise<ApiResponse> {
         const task = new taskEntity();
         task.name = input.name;
         task.description = input.description;

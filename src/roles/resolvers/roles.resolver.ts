@@ -1,5 +1,6 @@
 import { Args, Mutation, Query, Resolver, Int, ID } from '@nestjs/graphql';
 import { Role } from '../models/role.model';
+import { RolePage, RoleSingle } from '../models/role.page';
 import { RolesService } from '../services/roles.service';
 import { ResponseFactory } from '@/src/common/http/response.factory';
 import { CreateRoleInput } from '../dto/createRole.input';
@@ -13,36 +14,53 @@ export class RolesResolver {
     constructor(private readonly rolesService: RolesService) { }
 
     // 1. Get all roles with pagination
-    @Query(() => ApiResponse)
+    @Query(() => RolePage)
     async roles(
         @Args('page', { type: () => Int }) page: number,
         @Args('limit', { type: () => Int }) limit: number
-    ): Promise<ApiResponse> {
+    ): Promise<RolePage> {
         const response = await this.rolesService.findAll(page, limit);
 
         if (response.data.length === 0) {
-            return ResponseFactory.notFound('No roles found');
+            return {
+                code: 404,
+                message: 'No roles found',
+                data: [],
+            };
         }
 
-        return ResponseFactory.success(
-            'Roles retrieved successfully',
-            response,
-        );
+        return {
+            code: 200,
+            message: 'Roles retrieved successfully',
+            data: response.data,
+            page: response.page,
+            limit: response.limit,
+            total: response.total,
+            totalPages: response.totalPages,
+        };
     }
 
     // 2. Get role by ID
-    @Query(() => ApiResponse)
-    async role(@Args('id', { type: () => ID }) id: number): Promise<ApiResponse<Role>> {
+    @Query(() => RoleSingle)
+    async role(@Args('id', { type: () => ID }) id: number): Promise<RoleSingle> {
         try {
             const roleData = await this.rolesService.getById(id);
-            return ResponseFactory.success('Role retrieved successfully', roleData);
+            return {
+                code: 200,
+                message: 'Role retrieved successfully',
+                data: roleData,
+            };
         } catch (error) {
-            return ResponseFactory.notFound('Role not found');
+            return {
+                code: 404,
+                message: 'Role not found',
+            };
         }
     }
 
     // 3. Create a new role
-    @Mutation(() => ApiResponse) async createRole(@Args('input') input: CreateRoleInput,): Promise<ApiResponse> {
+    @Mutation(() => ApiResponse)
+    async createRole(@Args('input') input: CreateRoleInput): Promise<ApiResponse> {
         const role = new roleEntity();
         role.name = input.name;
         role.description = input.description || "N/A";

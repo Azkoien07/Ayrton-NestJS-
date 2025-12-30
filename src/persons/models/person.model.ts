@@ -1,5 +1,4 @@
 import { Field, ObjectType, ID } from "@nestjs/graphql";
-import { User } from "@/src/users/models/user.model";
 import { DocumentType } from "@/src/document-type/models/documentType.model";
 
 @ObjectType()
@@ -34,9 +33,6 @@ export class Person {
 
     @Field(() => DocumentType, { nullable: false })
     documentType: DocumentType;
-
-    @Field(() => User, { nullable: false })
-    user: User;
 
     @Field(() => Date)
     createdAt: Date;

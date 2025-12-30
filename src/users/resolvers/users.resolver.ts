@@ -2,6 +2,7 @@ import { Args, Mutation, Query, Resolver, Int, ID } from '@nestjs/graphql';
 import { UsersService } from '../services/users.service';
 import { RolesService } from '@/src/roles/services/roles.service';
 import { User } from '../models/user.model';
+import { UserPage, UserSingle } from '../models/user.page';
 import { CreateUserInput } from '../dto/createUser.input';
 import { userEntity } from '../entity/user.entity';
 import { ResponseFactory } from '@/src/common/http/response.factory';
@@ -17,32 +18,48 @@ export class UsersResolver {
     constructor(private readonly usersService: UsersService, private readonly rolesService: RolesService) { }
 
     // 1. Get all users with pagination
-    @Query(() => ApiResponse)
+    @Query(() => UserPage)
     async users(
         @Args('page', { type: () => Int }) page: number,
         @Args('limit', { type: () => Int }) limit: number
-    ): Promise<ApiResponse> {
+    ): Promise<UserPage> {
         const response = await this.usersService.findAll(page, limit);
 
         if (response.data.length === 0) {
-            return ResponseFactory.notFound('No users found');
+            return {
+                code: 404,
+                message: 'No users found',
+                data: [],
+            };
         }
 
-        return ResponseFactory.success(
-            'Users retrieved successfully',
-            response,
-        );
+        return {
+            code: 200,
+            message: 'Users retrieved successfully',
+            data: response.data,
+            page: response.page,
+            limit: response.limit,
+            total: response.total,
+            totalPages: response.totalPages,
+        };
     }
 
 
     // 2. Get user by ID
-    @Query(() => ApiResponse)
-    async user(@Args('id', { type: () => ID }) id: number): Promise<ApiResponse<User>> {
+    @Query(() => UserSingle)
+    async user(@Args('id', { type: () => ID }) id: number): Promise<UserSingle> {
         try {
             const userData = await this.usersService.getById(id);
-            return ResponseFactory.success('User retrieved successfully', userData);
+            return {
+                code: 200,
+                message: 'User retrieved successfully',
+                data: userData,
+            };
         } catch (error) {
-            return ResponseFactory.notFound('User not found');
+            return {
+                code: 404,
+                message: 'User not found',
+            };
         }
     }
 

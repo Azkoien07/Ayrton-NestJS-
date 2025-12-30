@@ -1,5 +1,6 @@
 import { Query, Resolver, Args, Mutation, Int, ID } from '@nestjs/graphql';
 import { Person } from '../models/person.model';
+import { PersonPage, PersonSingle } from '../models/person.page';
 import { PersonsService } from '../services/persons.service';
 import { ApiResponse } from '@/src/common/http/response';
 import { ResponseFactory } from '@/src/common/http/response.factory';
@@ -20,30 +21,46 @@ export class PersonsResolver {
     constructor(private readonly personsService: PersonsService) { }
 
     // 1. Get all persons with pagination
-    @Query(() => ApiResponse)
+    @Query(() => PersonPage)
     async persons(
         @Args('page', { type: () => Int }) page: number,
         @Args('limit', { type: () => Int }) limit: number
-    ): Promise<ApiResponse> {
+    ): Promise<PersonPage> {
         const response = await this.personsService.findAll(page, limit);
 
         if (response.data.length === 0) {
-            return ResponseFactory.notFound('No persons found');
+            return {
+                code: 404,
+                message: 'No persons found',
+                data: [],
+            };
         }
-        return ResponseFactory.success(
-            'Persons retrieved successfully',
-            response,
-        );
+        return {
+            code: 200,
+            message: 'Persons retrieved successfully',
+            data: response.data,
+            page: response.page,
+            limit: response.limit,
+            total: response.total,
+            totalPages: response.totalPages,
+        };
     }
 
     // 2. Get person by ID
-    @Query(() => ApiResponse)
-    async person(@Args('id', { type: () => ID }) id: number): Promise<ApiResponse<Person>> {
+    @Query(() => PersonSingle)
+    async person(@Args('id', { type: () => ID }) id: number): Promise<PersonSingle> {
         try {
             const personData = await this.personsService.getById(id);
-            return ResponseFactory.success('Person retrieved successfully', personData);
+            return {
+                code: 200,
+                message: 'Person retrieved successfully',
+                data: personData,
+            };
         } catch (error) {
-            return ResponseFactory.notFound('Person not found');
+            return {
+                code: 404,
+                message: 'Person not found',
+            };
         }
     }
 

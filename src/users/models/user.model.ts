@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID } from "@nestjs/graphql";
 import { Role } from "../../roles/models/role.model";
-import { Task } from "@/src/tasks/models/task.model";
+import { Person } from "@/src/persons/models/person.model";
 
 @ObjectType()
 export class User {
@@ -14,9 +14,9 @@ export class User {
     @Field(() => Role)
     role: Role;
 
+    @Field(() => Person, { nullable: true })
+    person?: Person;
+
     @Field()
     createdAt: Date;
-
-    @Field(() => [Task], { nullable: true })
-    tasks?: Task[];
 }

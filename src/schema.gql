@@ -14,25 +14,35 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
-type Task {
+type DocumentType {
   id: ID!
   name: String!
-  description: String!
-  state: String!
-  priority: String!
-  type: String!
+  acronym: String!
+  state: Boolean!
   createdAt: DateTime!
-  expirationDate: DateTime!
-  reminder: Boolean!
-  users: [User!]!
+  updatedAt: DateTime!
+}
+
+type Person {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  document: String!
+  phone: String!
+  bloodType: String!
+  address: String!
+  photo: String
+  state: Boolean!
+  documentType: DocumentType!
+  createdAt: DateTime!
 }
 
 type User {
   id: ID!
   email: String!
   role: Role!
+  person: Person
   createdAt: DateTime!
-  tasks: [Task!]
 }
 
 type ApiResponse {
@@ -46,27 +56,118 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://
 """
 scalar JSON
 
-type DocumentType {
+type UserPage {
+  code: Int!
+  message: String!
+  date: String
+  page: Int
+  limit: Int
+  total: Int
+  totalPages: Int
+  data: [User!]
+}
+
+type UserSingle {
+  code: Int!
+  message: String!
+  date: String
+  page: Int
+  limit: Int
+  total: Int
+  totalPages: Int
+  data: User
+}
+
+type RolePage {
+  code: Int!
+  message: String!
+  date: String
+  page: Int
+  limit: Int
+  total: Int
+  totalPages: Int
+  data: [Role!]
+}
+
+type RoleSingle {
+  code: Int!
+  message: String!
+  date: String
+  page: Int
+  limit: Int
+  total: Int
+  totalPages: Int
+  data: Role
+}
+
+type Task {
   id: ID!
   name: String!
-  acronym: String!
-  state: Boolean!
+  description: String!
+  state: String!
+  priority: String!
+  type: String!
   createdAt: DateTime!
-  updatedAt: DateTime!
+  expirationDate: DateTime!
+  reminder: Boolean!
+}
+
+type TaskPage {
+  code: Int!
+  message: String!
+  date: String
+  page: Int
+  limit: Int
+  total: Int
+  totalPages: Int
+  data: [Task!]
+}
+
+type TaskSingle {
+  code: Int!
+  message: String!
+  date: String
+  page: Int
+  limit: Int
+  total: Int
+  totalPages: Int
+  data: Task
+}
+
+type PersonPage {
+  code: Int!
+  message: String!
+  date: String
+  page: Int
+  limit: Int
+  total: Int
+  totalPages: Int
+  data: [Person!]
+}
+
+type PersonSingle {
+  code: Int!
+  message: String!
+  date: String
+  page: Int
+  limit: Int
+  total: Int
+  totalPages: Int
+  data: Person
 }
 
 """Upload custom scalar type"""
 scalar Upload
 
 type Query {
-  users(page: Int!, limit: Int!): ApiResponse!
-  user(id: ID!): ApiResponse!
-  roles(page: Int!, limit: Int!): ApiResponse!
-  role(id: ID!): ApiResponse!
-  tasks(page: Int!, limit: Int!): ApiResponse!
-  task(id: ID!): ApiResponse!
-  persons(page: Int!, limit: Int!): ApiResponse!
-  person(id: ID!): ApiResponse!
+  users(page: Int!, limit: Int!): UserPage!
+  user(id: ID!): UserSingle!
+  roles(page: Int!, limit: Int!): RolePage!
+  role(id: ID!): RoleSingle!
+  tasks(page: Int!, limit: Int!): TaskPage!
+  task(id: ID!): TaskSingle!
+  persons(page: Int!, limit: Int!): PersonPage!
+  person(id: ID!): PersonSingle!
 }
 
 type Mutation {

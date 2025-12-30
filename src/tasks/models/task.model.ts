@@ -1,4 +1,3 @@
-import { User } from '@/src/users/models/user.model';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 
 @ObjectType()
@@ -29,7 +28,4 @@ export class Task {
 
     @Field()
     reminder: boolean;
-
-    @Field(() => [User], { nullable: false })
-    users: User[];
 }
